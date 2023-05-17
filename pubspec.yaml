@@ -9,7 +9,6 @@ dependencies:
   flutter:
     sdk: flutter
   nepali_utils: ^3.0.3
-  flutter_animate: ^4.1.1+1
 
 dev_dependencies:
   flutter_test:

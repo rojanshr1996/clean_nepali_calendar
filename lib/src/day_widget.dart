@@ -84,6 +84,6 @@ class _DayWidget extends StatelessWidget {
                 ),
               ),
             ),
-          ).animate(autoPlay: isSelected).shake(offset: const Offset(1.5, 0));
+          );
   }
 }
