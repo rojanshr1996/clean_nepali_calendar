@@ -6,6 +6,7 @@ import 'package:flutter/gestures.dart' show DragStartBehavior;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:nepali_utils/nepali_utils.dart';
 export 'package:nepali_utils/nepali_utils.dart';
 part './src/nepali_calendar.dart';

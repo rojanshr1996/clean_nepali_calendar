@@ -70,8 +70,7 @@ class _DayWidget extends StatelessWidget {
     }
 
     return (builder != null)
-        ? builder!(isToday, isSelected, isDisabled, day, label, text,
-            calendarStyle, isWeekend)
+        ? builder!(isToday, isSelected, isDisabled, day, label, text, calendarStyle, isWeekend)
         : AnimatedContainer(
             duration: const Duration(milliseconds: 2000),
             decoration: buildCellDecoration(),
@@ -81,13 +80,10 @@ class _DayWidget extends StatelessWidget {
                 selected: isSelected,
                 child: ExcludeSemantics(
                   child: Text(text,
-                      style: buildCellTextStyle().copyWith(
-                          color: isWeekend
-                              ? calendarStyle.weekEndTextColor
-                              : null)),
+                      style: buildCellTextStyle().copyWith(color: isWeekend ? calendarStyle.weekEndTextColor : null)),
                 ),
               ),
             ),
-          );
+          ).animate(autoPlay: isSelected).shake(offset: const Offset(1.5, 0));
   }
 }
