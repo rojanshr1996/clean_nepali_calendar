@@ -8,6 +8,11 @@ typedef HeaderBuilder = Widget Function(
   NepaliDateTime nepaliDateTime,
 );
 
+typedef EventMarkerBuilder<T> = Widget? Function(
+  List<T> events,
+  NepaliDateTime nepaliDateTime,
+);
+
 class _CalendarHeader extends StatelessWidget {
   const _CalendarHeader({
     Key? key,
