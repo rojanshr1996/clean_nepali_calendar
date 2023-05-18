@@ -102,10 +102,10 @@ packages:
     dependency: "direct main"
     description:
       name: nepali_date_picker
-      sha256: "5fa89692547c8698302d1f18525848ba7012b5e3389dc8fcd1bb5f9029ccd725"
+      sha256: d74e0237a63c0b43b53ab82e1bf6e30423bfd15c6abea208147abad405012b39
       url: "https://pub.dev"
     source: hosted
-    version: "5.3.0"
+    version: "5.3.1"
   nepali_utils:
     dependency: transitive
     description:
