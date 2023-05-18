@@ -28,7 +28,7 @@ class _DayPickerGridDelegate extends SliverGridDelegate {
 
 const _DayPickerGridDelegate _kDayPickerGridDelegate = _DayPickerGridDelegate();
 
-class _DaysView extends StatelessWidget {
+class _DaysView<T> extends StatelessWidget {
   _DaysView({
     Key? key,
     required this.selectedDate,
@@ -40,10 +40,12 @@ class _DaysView extends StatelessWidget {
     required this.language,
     required this.calendarStyle,
     required this.headerStyle,
+    required this.eventLoader,
     this.selectableDayPredicate,
     this.dragStartBehavior = DragStartBehavior.start,
     this.headerDayType = HeaderDayType.initial,
     this.headerDayBuilder,
+    this.eventMarkerBuilder,
     this.dateCellBuilder,
   })  : assert(!firstDate.isAfter(lastDate)),
         assert(selectedDate.isAfter(firstDate)),
@@ -70,7 +72,11 @@ class _DaysView extends StatelessWidget {
   final HeaderStyle headerStyle;
   final HeaderDayType headerDayType;
   final HeaderDayBuilder? headerDayBuilder;
+  final EventMarkerBuilder? eventMarkerBuilder;
   final DateCellBuilder? dateCellBuilder;
+
+  /// Function that assigns a list of events to a specified day.
+  final List<T> Function(NepaliDateTime day)? eventLoader;
 
   List<Widget> _getDayHeaders(
       Language language, TextStyle? headerStyle, HeaderDayType headerDayType, HeaderDayBuilder? builder) {
@@ -127,7 +133,6 @@ class _DaysView extends StatelessWidget {
         _getDayHeaders(language, themeData.textTheme.bodySmall, headerDayType, headerDayBuilder),
       );
     }
-
     //this weekNumber is to determine the weekend, saturday.
     int weekNumber = 0;
     for (var i = 0; true; i += 1) {
@@ -140,6 +145,8 @@ class _DaysView extends StatelessWidget {
         labels.add(Container());
       } else {
         final dayToBuild = NepaliDateTime(year, month, day);
+        final events = eventLoader?.call(dayToBuild) ?? [];
+
         final disabled = dayToBuild.isAfter(lastDate) ||
             dayToBuild.isBefore(firstDate) ||
             (selectableDayPredicate != null && !selectableDayPredicate!(dayToBuild));
@@ -149,19 +156,42 @@ class _DaysView extends StatelessWidget {
         final semanticLabel = '${formattedMonth(month, Language.english)} $day, $year';
         final text = '${language == Language.english ? day : NepaliUnicode.convert('$day')}';
 
-        Widget dayWidget = _DayWidget(
-          isDisabled: disabled,
-          text: text,
-          label: semanticLabel,
-          isToday: isCurrentDay,
-          isSelected: isSelectedDay,
-          calendarStyle: calendarStyle,
-          day: dayToBuild,
-          isWeekend: weekNumber == 6,
-          onTap: () {
-            onChanged(dayToBuild);
-          },
-          builder: dateCellBuilder,
+        Widget dayWidget = Stack(
+          children: [
+            _DayWidget(
+              isDisabled: disabled,
+              text: text,
+              label: semanticLabel,
+              isToday: isCurrentDay,
+              isSelected: isSelectedDay,
+              calendarStyle: calendarStyle,
+              day: dayToBuild,
+              isWeekend: weekNumber == 6,
+              onTap: () {
+                onChanged(dayToBuild);
+              },
+              builder: dateCellBuilder,
+            ),
+            events.isNotEmpty
+                ? Align(
+                    alignment: Alignment.bottomCenter,
+                    child: eventMarkerBuilder?.call(events, dayToBuild) ??
+                        Padding(
+                          padding: const EdgeInsets.all(4.0),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: events
+                                .take(1)
+                                .map<Widget>(
+                                  (event) => _buildSingleMarker(dayToBuild, event, 6),
+                                )
+                                .toList(),
+                          ),
+                        ),
+                  )
+                : const SizedBox.shrink(),
+          ],
         );
 
         if (!disabled) {
@@ -190,6 +220,17 @@ class _DaysView extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSingleMarker(DateTime day, T event, double markerSize) {
+    return Container(
+      width: markerSize,
+      height: markerSize,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: calendarStyle.todayColor,
+      ),
     );
   }
 }
