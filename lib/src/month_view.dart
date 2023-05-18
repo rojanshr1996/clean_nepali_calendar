@@ -2,7 +2,7 @@ part of clean_nepali_calendar;
 
 const Duration _kMonthScrollDuration = Duration(milliseconds: 200);
 
-class _MonthView extends StatefulWidget {
+class _MonthView<T> extends StatefulWidget {
   _MonthView({
     Key? key,
     required this.selectedDate,
@@ -12,6 +12,7 @@ class _MonthView extends StatefulWidget {
     required this.language,
     required this.calendarStyle,
     required this.headerStyle,
+    required this.eventLoader,
     this.selectableDayPredicate,
     this.onHeaderLongPressed,
     this.onHeaderTapped,
@@ -20,6 +21,7 @@ class _MonthView extends StatefulWidget {
     this.headerDayBuilder,
     this.dateCellBuilder,
     this.headerBuilder,
+    this.eventMarkerBuilder,
   })  : assert(!firstDate.isAfter(lastDate)),
         assert(selectedDate.isAfter(firstDate)),
         super(key: key);
@@ -50,6 +52,10 @@ class _MonthView extends StatefulWidget {
   final HeaderDayBuilder? headerDayBuilder;
   final DateCellBuilder? dateCellBuilder;
   final HeaderBuilder? headerBuilder;
+  final EventMarkerBuilder? eventMarkerBuilder;
+
+  /// Function that assigns a list of events to a specified day.
+  final List<T> Function(NepaliDateTime day)? eventLoader;
 
   @override
   _MonthViewState createState() => _MonthViewState();
@@ -63,6 +69,7 @@ class _MonthViewState extends State<_MonthView> with SingleTickerProviderStateMi
   void initState() {
     super.initState();
     // Initially display the pre-selected date.
+
     final monthPage = _monthDelta(widget.firstDate, widget.selectedDate);
     _dayPickerController = PageController(initialPage: monthPage);
     _handleMonthPageChanged(monthPage);
@@ -98,25 +105,26 @@ class _MonthViewState extends State<_MonthView> with SingleTickerProviderStateMi
     textDirection = Directionality.of(context);
   }
 
-  late NepaliDateTime _todayDate;
-  late NepaliDateTime _currentDisplayedMonthDate;
+  late ValueNotifier<NepaliDateTime> _todayDate;
+  late ValueNotifier<NepaliDateTime> _currentDisplayedMonthDate;
+  // late NepaliDateTime _currentDisplayedMonthDate;
   Timer? _timer;
   late PageController _dayPickerController;
   late AnimationController _chevronOpacityController;
   late Animation<double> _chevronOpacityAnimation;
 
   void _updateCurrentDate() {
-    _todayDate = NepaliDateTime.now();
+    _todayDate = ValueNotifier<NepaliDateTime>(NepaliDateTime.now());
     final tomorrow = NepaliDateTime(
-      _todayDate.year,
-      _todayDate.month,
-      _todayDate.day + 1,
+      _todayDate.value.year,
+      _todayDate.value.month,
+      _todayDate.value.day + 1,
     );
-    var timeUntilTomorrow = tomorrow.difference(_todayDate);
+    var timeUntilTomorrow = tomorrow.difference(_todayDate.value);
     timeUntilTomorrow += const Duration(seconds: 1); // so we don't miss it by rounding
     _timer?.cancel();
     _timer = Timer(timeUntilTomorrow, () {
-      setState(_updateCurrentDate);
+      _updateCurrentDate;
     });
   }
 
@@ -142,29 +150,36 @@ class _MonthViewState extends State<_MonthView> with SingleTickerProviderStateMi
 
   Widget _buildItems(BuildContext context, int index) {
     final month = _addMonthsToMonthDate(widget.firstDate, index);
-    return _DaysView(
-      key: ValueKey<NepaliDateTime>(month),
-      headerStyle: widget.headerStyle,
-      calendarStyle: widget.calendarStyle,
-      selectedDate: widget.selectedDate,
-      currentDate: _todayDate,
-      onChanged: widget.onChanged,
-      firstDate: widget.firstDate,
-      lastDate: widget.lastDate,
-      displayedMonth: month,
-      language: widget.language,
-      selectableDayPredicate: widget.selectableDayPredicate,
-      dragStartBehavior: widget.dragStartBehavior,
-      headerDayType: widget.headerDayType,
-      headerDayBuilder: widget.headerDayBuilder,
-      dateCellBuilder: widget.dateCellBuilder,
-    );
+    return ValueListenableBuilder(
+        valueListenable: _todayDate,
+        builder: (BuildContext context, NepaliDateTime value, Widget? child) {
+          return _DaysView(
+            key: ValueKey<NepaliDateTime>(month),
+            headerStyle: widget.headerStyle,
+            calendarStyle: widget.calendarStyle,
+            selectedDate: widget.selectedDate,
+            currentDate: _todayDate.value,
+            onChanged: widget.onChanged,
+            firstDate: widget.firstDate,
+            lastDate: widget.lastDate,
+            displayedMonth: month,
+            language: widget.language,
+            selectableDayPredicate: widget.selectableDayPredicate,
+            dragStartBehavior: widget.dragStartBehavior,
+            headerDayType: widget.headerDayType,
+            headerDayBuilder: widget.headerDayBuilder,
+            dateCellBuilder: widget.dateCellBuilder,
+            eventLoader: widget.eventLoader,
+            eventMarkerBuilder: widget.eventMarkerBuilder,
+          );
+        });
   }
 
   void _handleNextMonth() {
     if (!_isDisplayingLastMonth) {
       SemanticsService.announce(
-          "${formattedMonth(_nextMonthDate.month, Language.english)} ${_nextMonthDate.year}", textDirection);
+          "${formattedMonth(_nextMonthDate.value.month, Language.english)} ${_nextMonthDate.value.year}",
+          textDirection);
       _dayPickerController.nextPage(duration: _kMonthScrollDuration, curve: Curves.ease);
     }
   }
@@ -172,28 +187,32 @@ class _MonthViewState extends State<_MonthView> with SingleTickerProviderStateMi
   void _handlePreviousMonth() {
     if (!_isDisplayingFirstMonth) {
       SemanticsService.announce(
-          "${formattedMonth(_previousMonthDate.month, Language.english)} ${_previousMonthDate.year}", textDirection);
+          "${formattedMonth(_previousMonthDate.value.month, Language.english)} ${_previousMonthDate.value.year}",
+          textDirection);
       _dayPickerController.previousPage(duration: _kMonthScrollDuration, curve: Curves.ease);
     }
   }
 
   bool get _isDisplayingFirstMonth {
-    return !_currentDisplayedMonthDate.isAfter(NepaliDateTime(widget.firstDate.year, widget.firstDate.month));
+    return !_currentDisplayedMonthDate.value.isAfter(NepaliDateTime(widget.firstDate.year, widget.firstDate.month));
   }
 
   bool get _isDisplayingLastMonth {
-    return !_currentDisplayedMonthDate.isBefore(NepaliDateTime(widget.lastDate.year, widget.lastDate.month));
+    return !_currentDisplayedMonthDate.value.isBefore(NepaliDateTime(widget.lastDate.year, widget.lastDate.month));
   }
 
-  late NepaliDateTime _previousMonthDate;
-  late NepaliDateTime _nextMonthDate;
+  // late NepaliDateTime _previousMonthDate;
+  // late NepaliDateTime _nextMonthDate;
+
+  late ValueNotifier<NepaliDateTime> _previousMonthDate;
+  late ValueNotifier<NepaliDateTime> _nextMonthDate;
 
   void _handleMonthPageChanged(int monthPage) {
-    setState(() {
-      _previousMonthDate = _addMonthsToMonthDate(widget.firstDate, monthPage - 1);
-      _currentDisplayedMonthDate = _addMonthsToMonthDate(widget.firstDate, monthPage);
-      _nextMonthDate = _addMonthsToMonthDate(widget.firstDate, monthPage + 1);
-    });
+    // setState(() {
+    _previousMonthDate = ValueNotifier<NepaliDateTime>(_addMonthsToMonthDate(widget.firstDate, monthPage - 1));
+    _currentDisplayedMonthDate = ValueNotifier<NepaliDateTime>(_addMonthsToMonthDate(widget.firstDate, monthPage));
+    _nextMonthDate = ValueNotifier<NepaliDateTime>(_addMonthsToMonthDate(widget.firstDate, monthPage + 1));
+    // });
   }
 
   @override
@@ -202,23 +221,32 @@ class _MonthViewState extends State<_MonthView> with SingleTickerProviderStateMi
       height: _kMaxDayPickerHeight,
       child: Column(
         children: <Widget>[
-          _CalendarHeader(
-            onHeaderLongPressed: widget.onHeaderLongPressed,
-            onHeaderTapped: widget.onHeaderTapped,
-            language: widget.language,
-            handleNextMonth: _handleNextMonth,
-            handlePreviousMonth: _handlePreviousMonth,
-            headerStyle: widget.headerStyle,
-            chevronOpacityAnimation: _chevronOpacityAnimation,
-            isDisplayingFirstMonth: _isDisplayingFirstMonth,
-            previousMonthDate: _previousMonthDate,
-            date: _currentDisplayedMonthDate,
-            isDisplayingLastMonth: _isDisplayingLastMonth,
-            nextMonthDate: _nextMonthDate,
-            changeToToday: () {
-              widget.onChanged(NepaliDateTime.now());
+          ValueListenableBuilder(
+            valueListenable: _previousMonthDate,
+            builder: (BuildContext context, NepaliDateTime value, Widget? child) {
+              return ValueListenableBuilder(
+                  valueListenable: _nextMonthDate,
+                  builder: (BuildContext context, NepaliDateTime value, Widget? child) {
+                    return _CalendarHeader(
+                      onHeaderLongPressed: widget.onHeaderLongPressed,
+                      onHeaderTapped: widget.onHeaderTapped,
+                      language: widget.language,
+                      handleNextMonth: _handleNextMonth,
+                      handlePreviousMonth: _handlePreviousMonth,
+                      headerStyle: widget.headerStyle,
+                      chevronOpacityAnimation: _chevronOpacityAnimation,
+                      isDisplayingFirstMonth: _isDisplayingFirstMonth,
+                      previousMonthDate: _previousMonthDate.value,
+                      date: _currentDisplayedMonthDate.value,
+                      isDisplayingLastMonth: _isDisplayingLastMonth,
+                      nextMonthDate: _nextMonthDate.value,
+                      changeToToday: () {
+                        widget.onChanged(NepaliDateTime.now());
+                      },
+                      headerBuilder: widget.headerBuilder,
+                    );
+                  });
             },
-            headerBuilder: widget.headerBuilder,
           ),
           Expanded(
             child: Stack(
