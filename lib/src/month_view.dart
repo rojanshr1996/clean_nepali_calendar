@@ -208,11 +208,11 @@ class _MonthViewState extends State<_MonthView> with SingleTickerProviderStateMi
   late ValueNotifier<NepaliDateTime> _nextMonthDate;
 
   void _handleMonthPageChanged(int monthPage) {
-    // setState(() {
-    _previousMonthDate = ValueNotifier<NepaliDateTime>(_addMonthsToMonthDate(widget.firstDate, monthPage - 1));
-    _currentDisplayedMonthDate = ValueNotifier<NepaliDateTime>(_addMonthsToMonthDate(widget.firstDate, monthPage));
-    _nextMonthDate = ValueNotifier<NepaliDateTime>(_addMonthsToMonthDate(widget.firstDate, monthPage + 1));
-    // });
+    setState(() {
+      _previousMonthDate = ValueNotifier<NepaliDateTime>(_addMonthsToMonthDate(widget.firstDate, monthPage - 1));
+      _currentDisplayedMonthDate = ValueNotifier<NepaliDateTime>(_addMonthsToMonthDate(widget.firstDate, monthPage));
+      _nextMonthDate = ValueNotifier<NepaliDateTime>(_addMonthsToMonthDate(widget.firstDate, monthPage + 1));
+    });
   }
 
   @override
